@@ -19,8 +19,10 @@ import os
 from os.path import basename
 import glob
 import scipy.misc
+import logging
 
 FLAGS = None
+
 
 def resize_images(src_dir, des_dir, img_w, img_h):
     '''Reads all images from src_dir, resizes them based on img_w and img_h and saves them to 
@@ -29,13 +31,16 @@ des_dir'''
     for filename in glob.glob(os.path.join(src_dir, '*.jpg')):
         # gets the file base name
         photo = basename(filename)
-        print 'Resizing ' + filename + ' to ' + os.path.join(des_dir, photo)
+        logging.info('Resizing ' + filename + ' to ' +
+                     os.path.join(des_dir, photo))
         # reads the iamge data
         array_image = scipy.misc.imread(filename)
         # resize the image
-        array_resized_image = scipy.misc.imresize(array_image, (img_w, img_h), interp='nearest', mode=None)
+        array_resized_image = scipy.misc.imresize(
+            array_image, (img_w, img_h), interp='nearest', mode=None)
         # saves the resized image to the des_dir with the same base name
         scipy.misc.imsave(os.path.join(des_dir, photo), array_resized_image)
+
 
 def main():
     '''Main function'''

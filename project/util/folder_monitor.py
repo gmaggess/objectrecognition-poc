@@ -1,43 +1,47 @@
 from __future__ import division, print_function, absolute_import
-import time
-from watchdog.observers import Observer
-from watchdog.events import PatternMatchingEventHandler
-import tflearn
-from tflearn.layers.core import input_data, dropout, fully_connected
-from tflearn.layers.conv import conv_2d, max_pool_2d
-from tflearn.layers.estimator import regression
-from tflearn.data_preprocessing import ImagePreprocessing
+from os.path import basename
 from tflearn.data_augmentation import ImageAugmentation
-import scipy
-import numpy as np
+from tflearn.data_preprocessing import ImagePreprocessing
+from tflearn.layers.conv import conv_2d, max_pool_2d
+from tflearn.layers.core import input_data, dropout, fully_connected
+from tflearn.layers.estimator import regression
+from watchdog.events import PatternMatchingEventHandler
+from watchdog.observers import Observer
 import argparse
 import datetime
+import numpy as np
+import os
+import glob
+import scipy
 import tensorflow as tf
-import os, glob
-from os.path import basename
+import tflearn
+import time
 
 #model = None
-#MODEL_FOLDER='./tmp/fruits_convnet_model/'
-IMAGE_W=28
-IMAGE_H=28
-IMAGE_COLOR_CHANNELS=3
-CLASSES=7
-MODEL_DIR="./tmp/fruits_convnet_model"
+# MODEL_FOLDER='./tmp/fruits_convnet_model/'
+IMAGE_W = 28
+IMAGE_H = 28
+IMAGE_COLOR_CHANNELS = 3
+CLASSES = 7
+MODEL_DIR = "./tmp/fruits_convnet_model"
 MONITOR_DIR = None
 classes_map = {"jobs": 0}
 inventory = {}
 tmp_inventory = {}
+
 
 def getClassName(n):
     for name, code in classes_map.iteritems():
         if code == n:
             return name
 
+
 def cnn_model_fn(features, labels, mode):
     """Model function for CNN."""
     start_model_Load = datetime.datetime.now()
     # Input Layer
-    input_layer = tf.reshape(features["x"], [-1, IMAGE_W, IMAGE_H, IMAGE_COLOR_CHANNELS])
+    input_layer = tf.reshape(
+        features["x"], [-1, IMAGE_W, IMAGE_H, IMAGE_COLOR_CHANNELS])
 
     # Convolutional Layer #1 and Pooling Layer #1
     conv1 = tf.layers.conv2d(
@@ -59,7 +63,8 @@ def cnn_model_fn(features, labels, mode):
 
     # Dense Layer
     pool2_flat = tf.reshape(pool2, [-1, 7 * 7 * 64])
-    dense = tf.layers.dense(inputs=pool2_flat, units=1024, activation=tf.nn.relu)
+    dense = tf.layers.dense(
+        inputs=pool2_flat, units=1024, activation=tf.nn.relu)
     dropout = tf.layers.dropout(
         inputs=dense, rate=0.4, training=mode == tf.estimator.ModeKeys.TRAIN)
 
@@ -75,6 +80,7 @@ def cnn_model_fn(features, labels, mode):
     }
     return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
+
 class MyHandler(PatternMatchingEventHandler):
     patterns = ["*.jpg", "*.jpeg"]
     mnist_classifier = None
@@ -83,29 +89,32 @@ class MyHandler(PatternMatchingEventHandler):
         # Create the Estimator
         a = datetime.datetime.now()
         print("Initiating Estimator...")
-        self.mnist_classifier = tf.estimator.Estimator(model_fn=cnn_model_fn, model_dir=MODEL_DIR)
+        self.mnist_classifier = tf.estimator.Estimator(
+            model_fn=cnn_model_fn, model_dir=MODEL_DIR)
         b = datetime.datetime.now()
-        print("Estimator Initiated in: " + str(b-a))
+        print("Estimator Initiated in: " + str(b - a))
 
     def processImage(self, image):
-        time.sleep(.1) # allow some delay to file fully be copied into FS
+        time.sleep(.1)  # allow some delay to file fully be copied into FS
         a = datetime.datetime.now()
         # Load the image file
         #img = scipy.ndimage.imread(args.image, mode="RGB")
         img = scipy.ndimage.imread(image, mode="RGB")
         # Scale it to 32x32
-        img = scipy.misc.imresize(img, (IMAGE_W, IMAGE_H), interp="bicubic").astype(np.float32, casting='unsafe')
+        img = scipy.misc.imresize(img, (IMAGE_W, IMAGE_H), interp="bicubic").astype(
+            np.float32, casting='unsafe')
         # Predict
         predict_input = tf.estimator.inputs.numpy_input_fn(
-          x={"x": img},
-          y=None,
-          num_epochs=1,
-          shuffle=False)
-        predict_results = self.mnist_classifier.predict(input_fn=predict_input,predict_keys=None,hooks=None)
+            x={"x": img},
+            y=None,
+            num_epochs=1,
+            shuffle=False)
+        predict_results = self.mnist_classifier.predict(
+            input_fn=predict_input, predict_keys=None, hooks=None)
         n = list(predict_results)[0]['classes']
         print("It's a(n) " + getClassName(n))
         b = datetime.datetime.now()
-        print("Infer Time: " + str(b-a))
+        print("Infer Time: " + str(b - a))
 
     def process(self, event):
         print(event.src_path + " is being inferred...")
@@ -118,14 +127,16 @@ class MyHandler(PatternMatchingEventHandler):
         print("on_created")
         self.process(event)
 
-    #def __init__(self):
+    # def __init__(self):
     #    print("Initiating MyHandler...")
     #    self.loadEstimator()
         #super(PatternMatchingEventHandler, self).__init__()
 
+
 if __name__ == '__main__':
     # args = sys.argv[1:]
-    parser = argparse.ArgumentParser(description='Infer images from a directory to be monitored')
+    parser = argparse.ArgumentParser(
+        description='Infer images from a directory to be monitored')
     parser.add_argument(
         '--directory',
         type=str,
@@ -136,7 +147,7 @@ if __name__ == '__main__':
         """
     )
     args, unparsed = parser.parse_known_args()
-    MONITOR_DIR = args.directory;
+    MONITOR_DIR = args.directory
     handler = MyHandler()
     handler.loadEstimator()
     observer = Observer()
