@@ -1,6 +1,6 @@
 from objreco.class_mapping import add_class, total_classes, get_classes
 from objreco.pickle_images import convert_images
-from util.file_manager import create_dir
+from util.file_manager import create_dir, remove_file
 from util.resize_image import resize_images
 from util.video_transformer import video_to_image
 import argparse
@@ -13,7 +13,7 @@ OUTPUT_DIR = 'bin/'
 DATA_DIR = OUTPUT_DIR + 'data/'
 DATA_FILE = DATA_DIR + 'data.pkl'
 DEST_DIR = OUTPUT_DIR + 'target/'
-MODEL_DIR = 'model/'
+MODEL_DIR = 'project/model/'
 SOURCE_DIR = OUTPUT_DIR + 'images/'
 
 IMAGE_HEIGHT = 28
@@ -33,23 +33,24 @@ def reset():
 def train(video, image_width=IMAGE_WIDTH, image_height=IMAGE_HEIGHT, steps=100):
     create_dir(DATA_DIR)
     if video:
-        clazz = video_to_image(video, FRAME_RATE)
-        total = add_class(clazz)
+        clazz = video_to_image(video, SOURCE_DIR, FRAME_RATE)
+        add_class(clazz)
         create_dir(DEST_DIR)
         resize_images(SOURCE_DIR + clazz + '/', DEST_DIR,
                       image_width, image_height)
     convert_images(DEST_DIR, get_classes(), DATA_FILE)
-    os.system(' python ./multi_classifier.py --mode train --classes ' + str(total) +
+    print '******** TOTAL CLASSES: ' + str(total_classes())
+    os.system(' python project/objreco/multi_classifier.py --mode train --classes ' + str(total_classes()) +
               ' --steps ' + str(steps) + ' --model_dir=' + MODEL_DIR + ' --data_set=' + DATA_FILE)
 
 
 def evaluate():
-    os.system('python objectrec/multi_classifier.py --mode eval --classes ' + str(total_classes()) +
+    os.system('python project/objreco/multi_classifier.py --mode eval --classes ' + str(total_classes()) +
               ' --model_dir=' + MODEL_DIR + ' --data_set=' + DATA_FILE)
 
 
 def infer(target):
-    os.system('python objectrec/multi_classifier.py --mode infer --classes ' + str(total_classes()) +
+    os.system('python project/objreco/multi_classifier.py --mode infer --classes ' + str(total_classes()) +
               ' --model_dir=' + MODEL_DIR + ' --img_file ' + target)
 
 

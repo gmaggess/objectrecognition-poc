@@ -18,13 +18,15 @@ def add_class(clazz):
     logging.debug('New mapping: ' + pprint.pformat(data))
     with open(__get_mapping(), 'w') as outfile:
         json.dump(data, outfile)
-    return total
+    return total + 1
 
 
 def total_classes():
-    data = get_classes()
-    return data.length
+    return len(get_classes())
 
 
 def get_classes():
-    return json.load(open(__get_mapping(), 'r'))
+    try:
+        return json.load(open(__get_mapping(), 'r'))
+    except:
+        return {}

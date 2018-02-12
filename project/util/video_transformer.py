@@ -5,7 +5,6 @@ import logging
 import os
 from os.path import basename
 
-IMAGE_DIRECTORY = 'images/'
 IMAGE_EXT = '.jpg'
 
 
@@ -23,14 +22,14 @@ def __get_filename(path):
     return basename(filename)
 
 
-def video_to_image(path, rate):
+def video_to_image(path, output_dir, rate):
     vidcap = cv2.VideoCapture(path)
     success, image = vidcap.read()
     count = 0
     total = 1
     success = True
     clazz = __get_filename(path)
-    directory = IMAGE_DIRECTORY + clazz
+    directory = output_dir + clazz
     __create_directory(directory)
     while success:
         success, image = vidcap.read()
