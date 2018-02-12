@@ -1,5 +1,6 @@
-from objrec.class_mapping import add_class, total_classes
-from objrec.pickle_images import convert_images
+from objreco.class_mapping import add_class, total_classes, get_classes
+from objreco.pickle_images import convert_images
+from util.file_manager import create_dir
 from util.resize_image import resize_images
 from util.video_transformer import video_to_image
 import argparse
@@ -8,15 +9,17 @@ import os
 import shutil
 import sys
 
-CLASS_MAPPING = './class_mapping.json'
-DATA_FILE = 'bin/data/sample.pkl'
-DEST_DIR = 'target/'
-FRAME_RATE = 10
+OUTPUT_DIR = 'bin/'
+DATA_DIR = OUTPUT_DIR + 'data/'
+DATA_FILE = DATA_DIR + 'data.pkl'
+DEST_DIR = OUTPUT_DIR + 'target/'
+MODEL_DIR = 'model/'
+SOURCE_DIR = OUTPUT_DIR + 'images/'
+
 IMAGE_HEIGHT = 28
 IMAGE_WIDTH = 28
-MODEL_DIR = 'model/'
-OUTPUT_DIR = 'bin/'
-SOURCE_DIR = 'images/jobs/'
+FRAME_RATE = 10
+
 STEPS = 100
 
 
@@ -28,11 +31,14 @@ def reset():
 
 
 def train(video, image_width=IMAGE_WIDTH, image_height=IMAGE_HEIGHT, steps=100):
+    create_dir(DATA_DIR)
     if video:
         clazz = video_to_image(video, FRAME_RATE)
         total = add_class(clazz)
-        resize_images(SOURCE_DIR, DEST_DIR, image_width, image_height)
-    convert_images(DEST_DIR, CLASS_MAPPING, DATA_FILE)
+        create_dir(DEST_DIR)
+        resize_images(SOURCE_DIR + clazz + '/', DEST_DIR,
+                      image_width, image_height)
+    convert_images(DEST_DIR, get_classes(), DATA_FILE)
     os.system(' python ./multi_classifier.py --mode train --classes ' + str(total) +
               ' --steps ' + str(steps) + ' --model_dir=' + MODEL_DIR + ' --data_set=' + DATA_FILE)
 
