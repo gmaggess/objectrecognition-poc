@@ -158,7 +158,7 @@ def main(unused_argv):
         train_input_fn = tf.estimator.inputs.numpy_input_fn(
             x={"x": train_data},
             y=train_labels,
-            batch_size=100,
+            batch_size=train_data.shape[0],
             num_epochs=None,
             shuffle=True)
         mnist_classifier.train(
