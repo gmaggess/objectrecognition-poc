@@ -12,18 +12,18 @@ It takes the following arguments:
 --data_set: Required if --mode is train or eval. Data set for training and evaluating modes.
 --img_file: Required if --mode is infer. Image to be inferred.
 --steps: Optional. Defaults to 500. The number of training steps to train the model.
---model_dir: Optional. Defaults to the location where the program is running. Directory where 
+--model_dir: Optional. Defaults to the location where the program is running. Directory where
             model and check points are (or going to be) saved to. If using a already trained model
             it will be used to evaluate and infer modes.
 --img_w: Optional. Defaults to 28. Image pixels width used in the input data.
 --img_h: Optional. Defaulst to 28. Image pixels height used in the input data.
 --img_channels: Optional. Defaults to 3 (RGB). Image color channels from the input data.
 Examples:
-- To train: python multi_classifier.py --mode train --classes 7 --steps 100 --model_dir 
+- To train: python multi_classifier.py --mode train --classes 7 --steps 100 --model_dir
 ./tmp/my_first_model --data_set ./sample.pkl
-- To evaluate: python multi_classifier.py --mode eval --classes 7 --model_dir 
+- To evaluate: python multi_classifier.py --mode eval --classes 7 --model_dir
 ./tmp/my_first_model --data_set ./sample.pkl
-- To infer: python multi_classifier.py --mode infer --classes 7 --model_dir 
+- To infer: python multi_classifier.py --mode infer --classes 7 --model_dir
 ./tmp/my_first_model --img_file ./original/apple_3695899.jpg
 '''
 from __future__ import absolute_import
@@ -33,18 +33,25 @@ import datetime
 import argparse
 import pickle
 import scipy
+import glob
+import os
+from os.path import basename
 import numpy as np
 import tensorflow as tf
 
 FLAGS = None
+CLASSES = {"jobs":0, "newton":1}
 
-tf.logging.set_verbosity(tf.logging.INFO)
+# tf.logging.set_verbosity(tf.logging.INFO)
+tf.logging.set_verbosity(tf.logging.FATAL)
 
 # Our application logic will be added here
 def cnn_model_fn(features, labels, mode):
     """Model function for CNN."""
     # Input Layer
     input_layer = tf.reshape(features["x"], [-1, FLAGS.img_w, FLAGS.img_h, FLAGS.img_channels])
+    #print("input_layer:")
+    #print(input_layer)
 
     # Convolutional Layer #1 and Pooling Layer #1
     conv1 = tf.layers.conv2d(
@@ -53,8 +60,11 @@ def cnn_model_fn(features, labels, mode):
         kernel_size=[5, 5],
         padding="same",
         activation=tf.nn.relu)
+    #print("conv1:")
+    #print(conv1)
     pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=2)
-
+    #print("pool1:")
+    #print(pool1)
     # Convolutional Layer #2 and Pooling Layer #2
     conv2 = tf.layers.conv2d(
         inputs=pool1,
@@ -62,10 +72,16 @@ def cnn_model_fn(features, labels, mode):
         kernel_size=[5, 5],
         padding="same",
         activation=tf.nn.relu)
+    #print("conv2:")
+    #print(conv2)
     pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)
-
+    #print("pool2:")
+    #print(pool2)
     # Dense Layer
     pool2_flat = tf.reshape(pool2, [-1, 7 * 7 * 64])
+    # pool2_flat = tf.reshape(pool2, [-1, 25 * 25 * 64])
+    #print("pool2_flat:")
+    #print(pool2_flat)
     dense = tf.layers.dense(inputs=pool2_flat, units=1024, activation=tf.nn.relu)
     dropout = tf.layers.dropout(
         inputs=dense, rate=0.4, training=mode == tf.estimator.ModeKeys.TRAIN)
@@ -166,6 +182,25 @@ def main(unused_argv):
             steps=FLAGS.steps,
             hooks=[logging_hook])
 
+    # Test
+    if FLAGS.mode == 'test':
+        correct = 0
+        wrong = 0
+        for filename in glob.glob(os.path.join('./infer', '*.jpg')):
+            photo = basename(filename)
+            print("photo: " + photo)
+            predict_input = tf.estimator.inputs.numpy_input_fn(x={"x": load_image(filename)},y=None,num_epochs=1, shuffle=False)
+            predict_results = mnist_classifier.predict(input_fn=predict_input, predict_keys=None, hooks=None)
+            image_class = CLASSES[basename(photo.split("_")[0])]
+            prediction = list(predict_results)[0]['classes']
+            if image_class == prediction:
+                correct += 1
+            else:
+                wrong += 1
+        print("correct results: " + str(correct))
+        print("wrong results: " + str(wrong))
+
+
     execution_end = datetime.datetime.now()
     print("Execution Finished at: " + str(execution_end))
     print("Total Time: " + str(execution_end - execution_start))
@@ -176,7 +211,7 @@ if __name__ == "__main__":
         '--mode',
         type=str,
         required=True,
-        choices=['train', 'eval', 'infer'],
+        choices=['train', 'eval', 'infer', 'test'],
         help="""\
         Mode to run the script.\
         Train - trains a new model based on the provided --data_set.\

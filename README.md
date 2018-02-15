@@ -16,3 +16,7 @@ python ./multi_classifier.py --mode train --classes 1 --steps 300 --model_dir=mo
 python ./multi_classifier.py --mode eval --classes 1 --model_dir=model/ --data_set=data/sample.pkl
 ```
 
+```
+python ./multi_classifier.py --mode test --classes 2 --model_dir model/
+```
+
